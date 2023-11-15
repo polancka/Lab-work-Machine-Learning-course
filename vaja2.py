@@ -8,6 +8,8 @@ import random as rnd
 import pandas as pd
 import math
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score
 
 def leave_one_out(data):
     MSEs = 0
@@ -60,6 +62,48 @@ def k_fold(data, k):
     #posebaj zadnjo iteracijo ker ni nujno, da je 10 še ostalo
     overall_mse = overall_mse / iterations
     return overall_mse
+
+def forward_attribute_selection(test_x, test_y,train_x, train_y):
+    ## za vsak atribut najprej model samo s tem atributom, poglej kako napoveduje y
+    ##tisti ki njaboljše napoveduje (najmanjša MSE) dodamo v model
+    ## ponavljamo dodajanje dokler je to smiselno
+    candidates_indices = []
+    r2_scores_iteration= []
+    r2_scores_added =[]
+
+    current_best_value = -1
+    current_best_index = 0
+
+    
+    for i in range(100):
+        train_x_subset = train_x.iloc[:,i]
+        test_x_subset = test_x.iloc[:,i]
+        current_model = LinearRegression().fit(np.asarray(train_x_subset).reshape(-1,1),np.asarray(train_y))
+        fitted_values = current_model.predict(np.asarray(test_x_subset).reshape(-1,1))
+        current_r2_score = r2_score(test_y, fitted_values)
+
+        if(current_r2_score > current_best_value):
+            current_best_value = current_r2_score
+            current_best_index = i 
+            current_best_model = current_model
+    
+    # dodaj r2 score v seznam, shrani si kateri atirbut je najboljši
+    candidates_indices.append(current_best_index)
+   
+ 
+    #dodaj zunanji j, ki se bo pognal 100krat, i omeji samo do j-ja
+    for j in range(99):
+        train_x_subset = train_x.iloc[:,candidates_indices]
+        test_x_subset = test_x.iloc[:,candidates_indices] 
+        for i in range(j):
+            print("tukaj si ostala")
+
+
+
+
+
+        
+    return 1
         
 
 
@@ -81,15 +125,18 @@ data = data.dropna(axis = 0)
 x  = data.drop(columns= 'ViolentCrimesPerPop')
 y = data[['ViolentCrimesPerPop']]
 
-#Implement the cross-validation method and the leave-one-out method.
-loo_MSE = leave_one_out(data)
-#print(loo_MSE) #0.018644326733171977
-k = 10
-k_fold = k_fold(data,k)
-#print(k_fold) #0.018313116621930674
+# #Implement the cross-validation method and the leave-one-out method.
+# loo_MSE = leave_one_out(data)
+# #print(loo_MSE) #0.018644326733171977
+# k = 10
+# k_fold = k_fold(data,k)
+# #print(k_fold) #0.018313116621930674
 
 
 #TODO: Implement forward attribute selection. Fit linear regression.
+
+trainX, testX, trainY, testY = train_test_split(x, y, test_size= 0.3, random_state= 42)
+attributes = forward_attribute_selection(testX, testY, trainX, trainY)
 
 #TODO: Use the attribute selection method with the implemented cross-validation to select a reasonable set of attributes for your linear model.
 #which metric and the criteria
