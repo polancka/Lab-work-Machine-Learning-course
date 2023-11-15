@@ -7,55 +7,87 @@ import ipywidgets as widgets
 import random as rnd
 import pandas as pd
 import math
+from sklearn.metrics import mean_squared_error
 
 def leave_one_out(data):
     MSEs = 0
-    print(data.head(10))
-    for i in range(3):
+    for i in range(len(data)): #in range(len(data))
         #split into train and test, test is just one example, split into x and y
-        test_x = data.iloc[i].drop(columns= 'ViolentCrimesPerPop')
-        test_y = data.iloc[i][['ViolentCrimesPerPop']]
-        print(test_y[0])
-        #TODO : fix something with the data arrays" reshape for 2D array, now is 1D array
 
-        train_x = data.drop(data.iloc[[i]].index).drop(columns= 'ViolentCrimesPerPop')
-        train_y = data[['ViolentCrimesPerPop']].drop(data.iloc[[i]].index)
+        train_x = np.array(data.drop(data.iloc[[i]].index).drop(columns= 'ViolentCrimesPerPop'))
+        train_y = np.array(data[['ViolentCrimesPerPop']].drop(data.iloc[[i]].index))
+        train_y = train_y.reshape(-1,1)
 
-        curr_model = LinearRegression().fit(test_x,test_y)
-        curr_fit = curr_model.predict(train_x) 
+        test_x = np.array(data.drop(columns= 'ViolentCrimesPerPop').iloc[i]).reshape(1,-1)
+        test_y = np.array(data.iloc[i][['ViolentCrimesPerPop']])
+        test_y = test_y.reshape(-1,1)
+
+        #train the model
+        curr_model = LinearRegression().fit(train_x,train_y)
+        curr_fit = curr_model.predict(test_x) 
 
         #calculate the MSE (mean squared error) for test example and save it 
-        curr_mse = math.pow(test_y[i] - curr_fit,2)
+        curr_mse = math.pow(test_y[0] - curr_fit,2)
         MSEs += curr_mse
-    
 
-        
-        
     leave_one_out_MSE = MSEs/len(data)
     return leave_one_out_MSE
+
+def k_fold(data, k):
+    iterations = len(data) // k
+    overall_mse = 0
+    for i in range(iterations):
+        start_index = i*10
+        end_index = start_index + 9
+        #print(start_index, end_index)
+
+        train_x = data.drop(columns= 'ViolentCrimesPerPop')
+        train_x = np.array(train_x.drop(train_x.index[start_index:end_index+1]))
+        train_y = data[['ViolentCrimesPerPop']]
+        train_y = np.array(train_y.drop(train_y.index[start_index:end_index+1]))
+    
+
+        test_x = np.array(data.drop(columns= 'ViolentCrimesPerPop').iloc[start_index:end_index])
+        test_y = np.array(data.iloc[start_index:end_index][['ViolentCrimesPerPop']])
+        test_y = test_y.reshape(-1,1)
+
+        fold_model = LinearRegression().fit(train_x,train_y)
+        fold_predicts = fold_model.predict(test_x)
+        fold_mse = mean_squared_error(test_y,fold_predicts)
+        
+        overall_mse += fold_mse
+      
+    #posebaj zadnjo iteracijo ker ni nujno, da je 10 še ostalo
+    overall_mse = overall_mse / iterations
+    return overall_mse
         
 
 
 #Download the "Communities and Crime" dataset and prepare the data so that you will be able to use them for linear regression.
 
 # Reading the CSV file
-data = pd.read_csv('communities+and+crime/communities.data', na_values='?')
+data = pd.read_csv('data/communities+and+crime/communities.data', na_values='?')
 
 # Data Manipulation
 data = data.drop(['state', 'county', 'community', 'communityname', 'fold'], axis=1)
 data = data.sample(frac=1, random_state=3)
 
-# Displaying the count of null values in each column
-#print(data.isnull().sum().to_numpy())
+#delete the columns with a lot of null values and the remaining rows with a few null values
+data = data.dropna(axis=1, thresh= 1500)
+data = data.dropna(axis = 0)
+#print(data.info)  [1891 rows x 101 columns]
 
+#into x and y sets
 x  = data.drop(columns= 'ViolentCrimesPerPop')
 y = data[['ViolentCrimesPerPop']]
 
-#TODO: what about the null values??
-
-
-#TODO: Implement the cross-validation method and the leave-one-out method.
+#Implement the cross-validation method and the leave-one-out method.
 loo_MSE = leave_one_out(data)
+#print(loo_MSE) #0.018644326733171977
+k = 10
+k_fold = k_fold(data,k)
+#print(k_fold) #0.018313116621930674
+
 
 #TODO: Implement forward attribute selection. Fit linear regression.
 

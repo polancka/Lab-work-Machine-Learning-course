@@ -22,7 +22,7 @@ plt.rc('axes', titlesize=18)
 
 
 #Download the dataset Auto MPG and remove the attribute cylinders and carname.
-data = pd.read_csv('auto-mpg.csv').drop(columns= 'car name').drop(columns= 'cylinders')
+data = pd.read_csv('data/auto-mpg.csv').drop(columns= 'car name').drop(columns= 'cylinders')
 
 # pay attention to missing values (horsepower!) and categorical attributes 
 
