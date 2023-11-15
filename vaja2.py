@@ -67,10 +67,9 @@ def forward_attribute_selection(test_x, test_y,train_x, train_y):
     ## za vsak atribut najprej model samo s tem atributom, poglej kako napoveduje y
     ##tisti ki njaboljše napoveduje (najmanjša MSE) dodamo v model
     ## ponavljamo dodajanje dokler je to smiselno
-    candidates_indices = []
-    r2_scores_iteration= []
-    r2_scores_added =[]
 
+   
+    r2_scores_and_indices = list()
     current_best_value = -1
     current_best_index = 0
 
@@ -81,22 +80,32 @@ def forward_attribute_selection(test_x, test_y,train_x, train_y):
         current_model = LinearRegression().fit(np.asarray(train_x_subset).reshape(-1,1),np.asarray(train_y))
         fitted_values = current_model.predict(np.asarray(test_x_subset).reshape(-1,1))
         current_r2_score = r2_score(test_y, fitted_values)
-
-        if(current_r2_score > current_best_value):
-            current_best_value = current_r2_score
-            current_best_index = i 
-            current_best_model = current_model
-    
-    # dodaj r2 score v seznam, shrani si kateri atirbut je najboljši
-    candidates_indices.append(current_best_index)
+        r2_scores_and_indices.append((i,current_r2_score))
    
- 
-    #dodaj zunanji j, ki se bo pognal 100krat, i omeji samo do j-ja
-    for j in range(99):
-        train_x_subset = train_x.iloc[:,candidates_indices]
-        test_x_subset = test_x.iloc[:,candidates_indices] 
-        for i in range(j):
-            print("tukaj si ostala")
+    r2_scores_and_indices.sort(key = lambda x: x[1],reverse=True)
+
+    list_of_indexes = list()
+    ploting_r2 = list()
+  
+
+
+
+    for i in range(1,len(r2_scores_and_indices)):
+        list_of_indexes.append(r2_scores_and_indices[i][0])
+        
+        test_x_sub = test_x.iloc[:,list_of_indexes]
+        train_x_sub = train_x.iloc[:,list_of_indexes]
+
+        new_model = LinearRegression().fit(np.asarray(train_x_sub),np.asarray(train_y))
+        new_fitted_values = new_model.predict(np.asarray(test_x_sub))
+        new_r2_score = r2_score(test_y, new_fitted_values)
+        ploting_r2.append(new_r2_score)
+
+    plt.plot(ploting_r2)
+    plt.show()
+        
+
+        
 
 
 
