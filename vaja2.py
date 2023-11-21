@@ -15,6 +15,11 @@ import random
 
 ##function leave_one_out preforms a LOOCV (leave-one-out cross validation) on give data
 ## and returns the MSE (Mean squared error)
+from scipy.stats import bootstrap
+import random 
+
+##function leave_one_out preforms a LOOCV (leave-one-out cross validation) on give data
+## and returns the MSE (Mean squared error)
 
 def leave_one_out(data):
     MSEs = 0
@@ -99,6 +104,7 @@ def forward_attribute_selection(x, y):
     ##tisti ki njaboljše napoveduje (najmanjša MSE) dodamo v model
     ## ponavljamo dodajanje dokler je to smiselno
     r2_scores_and_indices = list()
+
     
     for i in range(100):
         x_subset = x.iloc[:,i]
@@ -109,6 +115,9 @@ def forward_attribute_selection(x, y):
 
     list_of_indexes = list()
     ploting_r2 = list()
+  
+
+
 
     for i in range(1,len(r2_scores_and_indices)):
         list_of_indexes.append(r2_scores_and_indices[i][0])
@@ -121,7 +130,8 @@ def forward_attribute_selection(x, y):
 
     plt.plot(ploting_r2)
     plt.show()
-             
+        
+        
     return 1
 
 
@@ -167,7 +177,7 @@ def bootstrap_samples_and_model(whole_train, test_x, test_y, n):
 #Download the "Communities and Crime" dataset and prepare the data so that you will be able to use them for linear regression.
 
 # Reading the CSV file
-data = pd.read_csv('vaje/communities.data', na_values='?')
+data = pd.read_csv('data/communities+and+crime/communities.data', na_values='?')
 
 # Data Manipulation
 data = data.drop(['state', 'county', 'community', 'communityname', 'fold'], axis=1)
