@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import cross_val_score
 from sklearn.tree import DecisionTreeRegressor
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
 
 class DecisionNode:
     def __init__(self, right, left, rss_value, split_attribute):
@@ -29,12 +31,15 @@ Y = data['price']
 
 #TODO: prepare the data - what to do with categorical variables? Shoulkd the tree be build only on train set?
 
+trainX, testX, trainY, testY = train_test_split(X, Y, test_size= 0.3, random_state= 42)
 #Build a regression tree for the selected dataset.
-root_tree = build_regression_tree(data)
+root_tree = build_regression_tree(trainX, trainY)
+my_score = cross_val_score(root_tree, testX, testY, cv = 10)
+
 
 #Build a regression tree with scikit-learn
-regressor = DecisionTreeRegressor(random_state=0)
-cross_val_score(regressor, X, Y, cv=10)
+regressor = DecisionTreeRegressor(trainX, trainX, random_state=0)
+sc_score = cross_val_score(regressor, testX, testY, cv=10)
 
 #TODO: Test the regressing tree (both) using cross-validation (save results as you go) 
 
