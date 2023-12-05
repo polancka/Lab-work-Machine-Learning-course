@@ -17,7 +17,7 @@ class DecisionNode:
 
 
 #Implement the regression tree algorithm from scratch. (split on a criteria of your own choosing)
-def build_regression_tree(data): #save the RSS value on every split and plot them to determine optimal value for stopping the tree
+def build_regression_tree(trainX, trainY): #save the RSS value on every split and plot them to determine optimal value for stopping the tree
     root_node = DecisionNode(None, None, 0, "")
     return root_node
 
@@ -27,8 +27,12 @@ def build_regression_tree(data): #save the RSS value on every split and plot the
 
 #Download the dataset "House price". Price is the target.
 data = pd.read_csv("House_Price.csv")
-print(sum(data.isnull))
-X = data.drop(columns="price")
+X = data.drop(columns=["price", "waterbody"])
+X['airport'].replace(["NO", "YES"], #change the alchocol level (categorical variable) to a numeric variabče
+                        [0, 1], inplace=True)
+X['bus_ter'].replace(["NO", "YES"], #change the alchocol level (categorical variable) to a numeric variabče
+                        [0, 1], inplace=True)
+print(X.info)
 Y = data['price']
 
 #TODO: prepare the data - what to do with categorical variables? Shoulkd the tree be build only on train set?
