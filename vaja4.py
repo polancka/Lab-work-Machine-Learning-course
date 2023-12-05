@@ -6,6 +6,8 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 
+# lahko droppaš variablo ki ima 4 različne (water body)
+
 class DecisionNode:
     def __init__(self, right, left, rss_value, split_attribute):
         self.left = left
