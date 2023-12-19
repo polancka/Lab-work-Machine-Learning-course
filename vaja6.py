@@ -86,8 +86,10 @@ def linear_kernel(x1, x2):
 def polynomial_kernel(x1, x2, degree=3):
     return (np.dot(x1, x2) + 3) ** degree
 
-def radial_basis_kernel(x1, x2, gamma=5.0):
-    return np.exp(-gamma * np.linalg.norm(x1 - x2) ** 2)
+def radial_basis_kernel(x1, x2, sigma=1.0):
+    return np.exp(-0.5 * ((x1 - x2) / sigma)**2)
+
+    
 
 #kernel matrix 
 def kernel_matrix(X, kernel_func):
@@ -129,7 +131,7 @@ def kernel_regression(trainX, trainY, testX, reg_lambda=1e-4):
         kernel_vec = np.zeros(len(trainX))
         for j in range(len(trainX)):
             kernel_vec[j] = radial_basis_kernel(testX[i], trainX[j])
-        linear_predictions[i] = np.dot(kernel_vec, alpha_radial)
+        radial_predictions[i] = np.dot(kernel_vec, alpha_radial)
     
     return linear_predictions, poly_predictions, radial_predictions
 
@@ -171,5 +173,11 @@ plt.legend()
 
 plt.show()
 
+
+# Accuracy: 0.9883040935672515
+# Precision: 1.0
+# Recall: 0.9682539682539683
+# {'C': 1000, 'gamma': 0.001, 'kernel': 'rbf'}
+# SVC(C=1000, gamma=0.001)
 
 

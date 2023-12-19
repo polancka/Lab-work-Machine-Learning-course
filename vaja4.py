@@ -1,104 +1,107 @@
 #Regression trees
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import  KFold
 from sklearn.tree import DecisionTreeRegressor
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, accuracy_score
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from sklearn.base import BaseEstimator, RegressorMixin
 
 
-#Select a criteria of your choice to stop splitting the nodes.
+#Select a criteria of your choice to stop splitting the nodes - depth
 # Selected split criteria is RSS (residual sum squared), which is most commonly used for regression. 
 #Criteria for ending the tree building can be depth of tree, minimal number of examples in a leaf node or a certain RSS value. 
 
 # Define the regression tree class with RSS as the splitting criterion
-class MyRegressionTree(BaseEstimator, RegressorMixin):
-    def __init__(self, max_depth=None, min_samples_leaf=1):
+class MyRegressionTree:
+    def __init__(self, max_depth=None, min_samples_split=2):
         self.max_depth = max_depth
-        self.min_samples_leaf = min_samples_leaf
+        self.min_samples_leaf = min_samples_split
         self.tree = None
+    
+    def mse(self, y):
+        return np.mean((y - np.mean(y))**2)
 
-    def rss(self, targets):
-        return np.sum((targets - np.mean(targets))**2)
-
-    def find_best_split(self, features, targets):
-        m, n = features.shape
-        if m <= 1:
+    def find_best_split(self, X, y):
+        m, n = X.shape
+        if m <= self.min_samples_leaf:
             return None, None
 
-        total_rss = self.rss(targets)
+        total_mse= self.mse(y)
 
-        best_split_idx = None
+        best_split_id = None
         best_split_value = None
-        best_rss = float('inf')
+        best_mse = float('inf')
 
         for i in range(n):
-            if isinstance(features, pd.DataFrame):
-                feature_values = features.iloc[:, i].values
-            else:
-                feature_values = features[:, i]
-            unique_values = np.unique(feature_values)
-
+            partX = X[:i]
+            unique_values = np.unique(partX)
             for value in unique_values:
-                left_mask = feature_values <= value
+                left_mask = partX <= value
                 right_mask = ~left_mask
 
-                if np.sum(left_mask) >= self.min_samples_leaf and np.sum(right_mask) >= self.min_samples_leaf:
-                    left_rss = self.rss(targets[left_mask])
-                    right_rss = self.rss(targets[right_mask])
+                if len(y[left_mask]) != 0 and len(y[right_mask]) != 0:
+                    right_mse = self.mse(y[right_mask])
+                    left_mse = self.mse(y[left_mask])
 
-                    weighted_rss = (np.sum(left_mask) / m) * left_rss + (np.sum(right_mask) / m) * right_rss
+                    weighted_mse = (len(y[left_mask]) / m) * left_mse + (len(y[right_mask]) / m) * right_mse
 
-                    if weighted_rss < best_rss:
-                        best_rss = weighted_rss
-                        best_split_idx = i
+                    if weighted_mse < best_mse:
+                        best_mse = weighted_mse
+                        best_split_id = i
                         best_split_value = value
+                else: 
+                    continue
 
-        return best_split_idx, best_split_value
-
-    def fit(self, features, targets, depth=0):
-        if self.max_depth is not None and depth == self.max_depth:
-            return np.mean(targets)
-
-        best_split_idx, best_split_value = self.find_best_split(features, targets)
-
-        if best_split_idx is None:
-            return np.mean(targets)
+        if best_mse >= total_mse:
+            return None, None 
+        else:
+            return best_split_id, best_split_value
+            
+                
+    def fit(self, X,y, depth):
+        #izhodni pogoj rekurzija
+        if len(np.unique(y) == 1) or depth == self.max_depth:
+            return np.mean(y)
         
-        if isinstance(features, pd.DataFrame):
-            features = features.values
+        #najdi najboljši split
+        split_index, split_value = self.find_best_split(X,y)
 
-        left_mask = features[:, best_split_idx] <= best_split_value
-        right_mask = ~left_mask
+        if split_index is not None:
+            left_mask = X[:,split_index] <= split_value
+            right_mask = ~left_mask
 
-        left_subtree = self.fit(features[left_mask], targets[left_mask], depth + 1)
-        right_subtree = self.fit(features[right_mask], targets[right_mask], depth + 1)
+            #rekurzivni klic
+            left_subtree = self.fit(X[left_mask, :], y[left_mask], depth + 1)
+            right_subtree = self.fit(X[right_mask, :], y[right_mask], depth + 1)
 
-        return (best_split_idx, best_split_value, left_subtree, right_subtree)
+            return (split_index, split_value, left_subtree, right_subtree)
+        else:
+            return np.mean(y)
 
-    def predict(self, features):
+
+    def predict_single(self, x, tree):
+        if isinstance(tree, np.float64):
+            return tree  # Leaf node, return the predicted value
+        else:
+            index, value, left_subtree, right_subtree = tree
+            if x[index] <= value:
+                return self.predict_single(x, left_subtree)
+            else:
+                return self.predict_single(x, right_subtree)
+            
+    def predict(self, X):
         if self.tree is None:
-            raise ValueError("The tree has not been fitted yet.")
+            raise ValueError("Tree not fitted. Call fit() before predict().")
 
-        predictions = np.zeros(features.shape[0])
-        for i in range(features.shape[0]):
-            node = self.tree
-            while isinstance(node, tuple):
-                split_idx, split_value, left_subtree, right_subtree = node
-                if features[i, split_idx] <= split_value:
-                    node = left_subtree
-                else:
-                    node = right_subtree
-            predictions[i] = node  # Leaf node value
-
-        return predictions
+        return np.array([self.predict_single(x, self.tree) for x in X])
 
 
 ##---------------------------------------------------------------------------------------------------------------------------------
 
 #Download the dataset "House price". Price is the target.
+#Preprocessinf
 data = pd.read_csv("House_Price.csv")
 
 #get rid of NaN values
@@ -117,30 +120,58 @@ Y = data['price']
 trainX, testX, trainY, testY = train_test_split(X, Y, test_size= 0.3, random_state= 42)
 
 
-# Visualize your data to identify outliers
-# plt.boxplot(testX)
-# plt.show()
+# # Build the regression tree with RSS as the splitting criterion
 
-
-# Build the regression tree with RSS as the splitting criterion
-regression_tree_rss = MyRegressionTree(max_depth=5, min_samples_leaf=10)
-regression_tree_rss.tree = regression_tree_rss.fit(trainX, trainY)
+my_cv = MyRegressionTree(max_depth=5, min_samples_split=2)
+my_cv.tree = my_cv.fit(trainX, trainY, 0)
+preds = my_cv.predict(testX)
+print(preds)
+my_accuracay = accuracy_score(testY, preds)
 
 # Test the regression tree using cross-validation
-#predicted = regression_tree_rss.predict(testX)
-#cv_scores_scratch_rss = cross_val_score(predicted, testX.values, testY.values, cv=10, scoring='neg_mean_squared_error')
-#cv_rmse_scratch_rss = np.sqrt(-cv_scores_scratch_rss)
 
-# Build a regression tree with scikit-learn for comparison
-scikit_tree_rss = DecisionTreeRegressor(max_depth=5, min_samples_leaf=10, random_state=42)
-cv_scores_scikit_rss = cross_val_score(scikit_tree_rss, testX.values, testY.values, cv=10, scoring='neg_mean_squared_error')
-cv_rmse_scikit_rss = np.sqrt(-cv_scores_scikit_rss)
+sl_cv = DecisionTreeRegressor(max_depth=3, min_samples_leaf=5)
 
-# Compare the cross-validation results
-#print("Cross-validation RMSE (from scratch with RSS):", cv_rmse_scratch_rss)
-print("Cross-validation RMSE (scikit-learn with RSS):", sum(cv_rmse_scikit_rss)/len(cv_rmse_scikit_rss))
-#MSEs with scikit: [3.01503952 2.68341541 3.48119011 3.53989764 3.989915   5.00732851 3.47742382 4.92615124 2.96002243 5.2240361 ]
-#Mean of MSEs with scikit : 3.8304419784368635
+kf = KFold(n_splits=10, shuffle=True, random_state=42)
 
-#MSEs with my implementation: 
-#Mean of MSEs with my implementation: 
+#Lists to store accuracy scores for each fold
+sl_scores = []
+my_scores = []
+tree_depths = [1,2,3,4,5,6,7,8,9,10]
+
+for train_index, test_index in kf.split(X): #loop for every fold
+    # Split the data into training and testing sets for this fold
+    X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+    y_train, y_test = Y.iloc[train_index], Y.iloc[test_index]
+
+    for tree_depth in tree_depths:
+        scores_r2 = []
+        scores_r2_scikit = []
+        for train, test in kf.split(X):
+            # reg_tree = RegressionTreeCustom(tree_depth)
+            # reg_tree.fit(X_train, y_train)
+            # y_test_pred = reg_tree.predict(X_test)
+            # scores_r2.append(r2_score(y_test, y_test_pred))
+            
+            regressor = DecisionTreeRegressor(max_depth=tree_depth)
+            regressor.fit(X_train, y_train)
+            y_test_pred_scikit = regressor.predict(X_test)
+            scores_r2_scikit.append(r2_score(y_test, y_test_pred_scikit))
+        #score = np.average(scores_r2)
+        score_scikit = np.average(scores_r2_scikit)
+        print(f'Depth: {tree_depth};  R2 : {score_scikit}')
+
+# # Print the results
+# print("Custom Gradient Boosting 10-Fold Cross-Validation Scores:", my_scores)
+# print("Scikit-learn Gradient Boosting 10-Fold Cross-Validation Scores:", sl_scores)
+# #21.3412603, 11.79355521, 24.5071886, 24.56891826, 23.03698228
+# #21.84118053
+
+# # Compare average scores
+# print("Average Custom Accuracy:", np.mean(my_scores))
+# print("Average Scikit-learn Accuracy:", np.mean(sl_scores))
+#
+
+
+
+
