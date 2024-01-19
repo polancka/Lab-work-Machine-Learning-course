@@ -16,7 +16,7 @@ transform = transforms.Compose([transforms.ToTensor()])
 train_dataset = torchvision.datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
 test_dataset = torchvision.datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
 
-# Normalize the training data - fix the normalisation - Q normalize just training set and save train_mean and train_sd
+# Normalize the training data 
 train_samples = train_dataset.data.float() / 255.0
 train_labels = train_dataset.targets
 
@@ -78,7 +78,7 @@ class Dataset:
         self.indices = np.random.permutation(self.indices)
 
 # Create training and validation datasets using the Dataset class
-batch_size = 16 #Q = Should the batch size here be bigger?
+batch_size = 16 
 train_dataset = Dataset(train_x_tensor, train_y, batch_size)
 validation_dataset = Dataset(validation_x_tensor, validation_y, batch_size)
 
@@ -353,7 +353,7 @@ best_pytorch_model, pytorch_train_losses, pytorch_val_losses = fit(pytorch_net, 
 # plt.show()
 
 
-##BONUS TASK
+##BONUS TASK not implemented 
 
 
 
